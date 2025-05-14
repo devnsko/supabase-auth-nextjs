@@ -2,7 +2,23 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+export async function getUserSession() {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+        return {
+            status: error.message,
+            user: null,
+        };
+    }
+    return {
+        status: "success",
+        user: data?.user,
+    };
+}
 
 export async function signUp(formData: FormData) {
     const supabase = await createClient();
@@ -63,6 +79,27 @@ export async function signIn(formData: FormData) {
         };
     }
 
+    
+    const { data: existingUser } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("email", credentials?.email)
+        .limit(1)
+        .single();
+
+    if (!existingUser) {
+        const { error: insertError } = await supabase.from("user_profiles").insert({
+            email: data?.user?.email,
+            username: data?.user?.user_metadata?.username
+        });
+        if (insertError) {
+            return {
+                status: insertError?.message,
+                user: null,
+            };
+        }
+    }
+
     revalidatePath("/", "layout");
     return {
         status: "success",
@@ -81,4 +118,24 @@ export async function signOut() {
 
     revalidatePath("/", "layout");
     redirect("/login");
+}
+
+export async function signInWithGoogle() {
+    const origin = (await headers()).get("origin");
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+            redirectTo: `${origin}/auth/callback`,
+        },
+    });
+
+    if (error) {
+        redirect("/error");
+    } else if (data?.url) {
+        redirect(data.url);
+    }
+
+    revalidatePath("/", "layout");
 }

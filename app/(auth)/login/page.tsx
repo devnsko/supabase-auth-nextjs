@@ -1,5 +1,5 @@
 import LoginForm from "@/components/LoginForm";
-import LoginGithub from "@/components/LoginGithub";
+import LoginGoogle from "@/components/LoginGoogle";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -11,7 +11,7 @@ export default function LoginPage() {
             Sign in
           </h1>
           <LoginForm />
-          <LoginGithub />
+          <LoginGoogle />
           <div className="mt-2 flex items-center">
             <h1>{`Don't have an account?`}</h1>
             <Link className="font-bold ml-2" href="/register">
