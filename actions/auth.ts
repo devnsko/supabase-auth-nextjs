@@ -139,3 +139,56 @@ export async function signInWithGoogle() {
 
     revalidatePath("/", "layout");
 }
+
+export async function forgotPassword(formData: FormData) {
+    const supabase = await createClient();
+    const origin = (await headers()).get("origin");
+    if (!origin) {
+        return {
+            status: "Origin header is missing"
+        };
+    }
+
+    const email = formData.get("email") as string;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, 
+        {
+        redirectTo: `${origin}/reset-password`,
+        }
+    );
+
+    if (error) {
+        return {
+            status: error?.message
+        };
+    }
+
+    return {
+        status: "success"
+    };
+}
+
+export async function resetPassword(formData: FormData, code: string) {
+    const supabase = await createClient();
+    const { error: CodeError } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (CodeError) {
+        return {
+            status: CodeError?.message
+        };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+        password: formData.get("password") as string,
+    });
+
+    if (error) {
+        return {
+            status: error?.message
+        };
+    }
+
+    return {
+        status: "success"
+    };
+}
